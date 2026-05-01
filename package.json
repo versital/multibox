@@ -53,6 +53,7 @@
 		"express": "^4.21.2",
 		"imperative-html": "^0.1.1",
 		"js-xxhash": "^4.0.0",
+		"peerjs": "^1.5.4",
 		"select2": "^4.0.13"
 	}
 }

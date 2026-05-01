@@ -12,6 +12,7 @@ import { Preferences } from "./Preferences";
 import { Change } from "./Change";
 import { ChangeNotifier } from "./ChangeNotifier";
 import { ChangeSong, setDefaultInstruments, discardInvalidPatternInstruments, ChangeHoldingModRecording } from "./changes";
+import { MultiplayerManager } from "./MultiplayerManager";
 
 interface HistoryState {
     canUndo: boolean;
@@ -32,6 +33,7 @@ export class SongDocument {
     public readonly notifier: ChangeNotifier = new ChangeNotifier();
     public readonly selection: Selection = new Selection(this);
     public readonly prefs: Preferences = new Preferences();
+    public readonly multiplayer: MultiplayerManager = new MultiplayerManager(this);
     public channel: number = 0;
     public muteEditorChannel: number = 0;
     public bar: number = 0;
@@ -125,6 +127,7 @@ export class SongDocument {
 
         this._validateDocState();
         this.performance = new SongPerformance(this);
+        this.multiplayer.init();
     }
 
     public toggleDisplayBrowserUrl() {
@@ -352,6 +355,10 @@ export class SongDocument {
             errorAlert(error);
             return;
         }
+        
+        // Multiplayer sync
+        this.multiplayer.syncState();
+
         if (this._stateShouldBePushed) this._sequenceNumber++;
         if (this._recordedNewSong) {
             this._resetSongRecoveryUid();
