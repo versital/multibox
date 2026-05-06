@@ -113,6 +113,8 @@ export class MultiplayerManager {
             DebugState.sentCount++;
             
             this.connection.send(JSON.stringify(packet));
+        } else {
+            DebugState.log("[ERROR] Sync failed: Connection not open");
         }
     }
 }
