@@ -142,6 +142,8 @@ export class MultiplayerManager {
                 DebugState.log(`[SYNC RECEIVE] Received song state from ${packet.meta?.senderId}`);
                 const songString = packet.payload;
                 this.doc.updateSong(songString);
+                // For consistency, update the hash as well
+                window.location.hash = songString;
                 DebugState.remoteUpdateReachedState = true;
             }
         });
