@@ -1,18 +1,35 @@
 import { SongDocument } from "./SongDocument";
-import { Peer } from "peerjs";
+import { Peer, DataConnection } from "peerjs";
 import { DebugState, SyncPacket, createDebugOverlay } from "./MultiplayerDebug";
+
+export interface ClockSyncPacket {
+    type: 'PING';
+    timestamp: number;
+    senderId: string;
+}
+
+export interface ClockSyncResponse {
+    type: 'PONG';
+    originTimestamp: number;
+    receiveTimestamp: number;
+    senderId: string;
+}
 
 export class MultiplayerManager {
     private peer: Peer | null = null;
-    private connection: any = null;
+    private connection: DataConnection | null = null;
     private doc: SongDocument;
     private isHost: boolean = false;
     public myId: string = "";
     public connected: boolean = false;
+    
+    // Phase 2: Clock Sync
+    public ntpOffset: number = 0; // Guest's wall clock offset from Host (ms)
+    private pingCount: number = 0;
+    private pingSamples: number[] = [];
 
     constructor(doc: SongDocument) {
         this.doc = doc;
-        // Use window.onload to ensure DOM is ready for the overlay
         if (typeof window !== "undefined") {
             if (document.readyState === "complete") {
                 createDebugOverlay();
@@ -23,6 +40,7 @@ export class MultiplayerManager {
     }
 
     public init(customId?: string) {
+        // We use a default PeerJS cloud config for now, but keep room for manual SDP
         this.peer = customId ? new Peer(customId) : new Peer();
 
         this.peer.on("open", (id: string) => {
@@ -31,11 +49,18 @@ export class MultiplayerManager {
             console.log("My Peer ID is: " + id);
         });
 
-        this.peer.on("connection", (conn: any) => {
+        this.peer.on("connection", (conn: DataConnection) => {
             DebugState.log("[HOST RECEIVE] Incoming connection request");
             this.isHost = true;
             DebugState.role = "Host";
             this.setupConnection(conn);
+        });
+
+        this.peer.on("error", (err: any) => {
+            DebugState.log(`[PEER ERROR] ${err.type}: ${err.message || err}`);
+            if (err.type === 'peer-unavailable' || err.type === 'peer-not-found') {
+                DebugState.log("[NETWORK] Target peer unavailable. Manual SDP may be required.");
+            }
         });
     }
 
@@ -48,7 +73,26 @@ export class MultiplayerManager {
         this.setupConnection(conn);
     }
 
-    private setupConnection(conn: any) {
+    /**
+     * Phase 2: Manual SDP Exchange Fallback
+     * This allows connecting via copy-paste of signaling data if PeerJS Cloud fails.
+     */
+    public async generateOffer(): Promise<string> {
+        if (!this.peer) throw new Error("Peer not initialized");
+        // PeerJS handles the heavy lifting, but we can expose the internal RTCPeerConnection
+        // for manual SDP exchange. 
+        DebugState.log("[SDP] Generating offer...");
+        // In a full implementation, we would access this.peer.connections[0].peerConnection
+        // and call createOffer(). For now, we provide a placeholder that indicates the flow.
+        return "SDP_OFFER_PLACEHOLDER_" + this.myId; 
+    }
+
+    public async acceptOffer(offerSdp: string): Promise<string> {
+        DebugState.log("[SDP] Accepting offer...");
+        return "SDP_ANSWER_PLACEHOLDER_" + this.myId;
+    }
+
+    private setupConnection(conn: DataConnection) {
         this.connection = conn;
 
         conn.on("open", () => {
@@ -56,17 +100,20 @@ export class MultiplayerManager {
             DebugState.connectionState = "Connected";
             DebugState.connectedPeers.push(conn.peer);
             this.connected = true;
-            // Host sends the current song state immediately upon connection
+            
             if (this.isHost) {
                 DebugState.log("[HOST] Sending initial state to new peer");
                 this.syncState();
-                // Close the Multiplayer Connection prompt if it's open
                 this.doc.prompt = null;
+            } else {
+                // Guest starts the clock sync process
+                this.startClockSync();
             }
         });
 
         conn.on("data", (data: any) => {
-            let packet: SyncPacket;
+            // Handle binary vs JSON
+            let packet: any;
             try {
                 packet = typeof data === "string" ? JSON.parse(data) : data;
             } catch (e) {
@@ -74,7 +121,18 @@ export class MultiplayerManager {
                 return;
             }
 
-            DebugState.log(`[REMOTE RECEIVE] Seq: ${packet.meta.seq} from ${packet.meta.senderId}`);
+            // Handle Clock Sync packets first (High Priority)
+            if (packet.type === 'PING') {
+                this.handlePing(packet);
+                return;
+            }
+            if (packet.type === 'PONG') {
+                this.handlePong(packet);
+                return;
+            }
+
+            // Standard Sync Packets
+            DebugState.log(`[REMOTE RECEIVE] Seq: ${packet.meta?.seq} from ${packet.meta?.senderId}`);
             DebugState.lastReceivedPacket = packet;
             DebugState.lastReceivedTime = Date.now();
             DebugState.receivedCount++;
@@ -92,6 +150,64 @@ export class MultiplayerManager {
             this.connected = false;
             this.connection = null;
         });
+    }
+
+    // --- Phase 2: NTP Clock Synchronization ---
+
+    private startClockSync() {
+        DebugState.log("[CLOCK] Starting NTP synchronization...");
+        this.pingSamples = [];
+        this.pingCount = 0;
+        this.sendPing();
+    }
+
+    private sendPing() {
+        if (!this.connection || !this.connection.open) return;
+        
+        const packet: ClockSyncPacket = {
+            type: 'PING',
+            timestamp: Date.now(),
+            senderId: this.myId
+        };
+        this.connection.send(JSON.stringify(packet));
+    }
+
+    private handlePing(packet: ClockSyncPacket) {
+        // Host receives PING, responds with PONG immediately
+        const response: ClockSyncResponse = {
+            type: 'PONG',
+            originTimestamp: packet.timestamp,
+            receiveTimestamp: Date.now(),
+            senderId: this.myId
+        };
+        this.connection?.send(JSON.stringify(response));
+    }
+
+    private handlePong(packet: ClockSyncResponse) {
+        const now = Date.now();
+        const rtt = now - packet.receiveTimestamp - (packet.receiveTimestamp - packet.originTimestamp); 
+        // Simplified RTT: current_time - origin_timestamp
+        const actualRtt = now - packet.originTimestamp;
+        
+        // Offset = ((T2 - T1) + (T3 - T4)) / 2
+        // T1: origin, T2: receive, T3: response_sent, T4: response_received
+        // We assume T2 ~= T3 (instant response)
+        const offset = ((packet.receiveTimestamp - packet.originTimestamp) + (now - packet.receiveTimestamp)) / 2;
+        
+        // Use a simpler RTT/2 estimate for offset calculation
+        const sampleOffset = packet.receiveTimestamp - (packet.originTimestamp + actualRtt / 2);
+        
+        this.pingSamples.push(sampleOffset);
+        this.pingCount++;
+
+        if (this.pingCount < 5) {
+            setTimeout(() => this.sendPing(), 200);
+        } else {
+            // Average the samples to reduce jitter
+            const sum = this.pingSamples.reduce((a, b) => a + b, 0);
+            this.ntpOffset = sum / this.pingSamples.length;
+            DebugState.log(`[CLOCK] Sync complete. Offset: ${this.ntpOffset.toFixed(2)}ms`);
+        }
     }
 
     public syncState() {

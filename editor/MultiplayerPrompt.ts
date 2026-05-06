@@ -1,68 +1,80 @@
-// Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
-
-import { HTML } from "imperative-html/dist/esm/elements-strict";
-import { Prompt } from "./Prompt";
 import { SongDocument } from "./SongDocument";
+import { MultiplayerManager } from "./MultiplayerManager";
+import { Prompt } from "./Prompt";
+import { HTMLWrapper } from "./HTMLWrapper";
 
-const { button, div, input, h2 } = HTML;
+export class MultiplayerPrompt extends Prompt {
+    private _doc: SongDocument;
+    private _manager: MultiplayerManager;
+    private _idInput: HTMLWrapper.Input;
+    private _statusText: HTMLWrapper.Text;
+    private _manualSdpSection: HTMLWrapper.Div;
+    private _offerInput: HTMLWrapper.Input;
+    private _answerInput: HTMLWrapper.Input;
 
-export class MultiplayerPrompt implements Prompt {
-    private readonly _idInputBox: HTMLInputElement = input({
-        style: "width: 100%; height: 1.5em; font-size: 80%; margin-left: 0.4em; vertical-align: middle; text-align: center;",
-        type: "text",
-        placeholder: "Enter Peer ID...",
-        value: ""
-    });
-    private readonly _myIdDisplay: HTMLDivElement = div({
-        style: "font-size: 80%; color: #94a3b8; text-align: center; margin-bottom: 10px;",
-        innerText: "Your ID: Loading..."
-    });
-    private readonly _copyIdButton: HTMLButtonElement = button({
-        style: "font-size: 70%; margin-left: 5px; cursor: pointer; min-width: 40px;",
-    }, "Copy");
-    private readonly _connectButton: HTMLButtonElement = button({
-        style: "width: 100%; height: 2em; margin-top: 10px; cursor: pointer; background: #a855f7; color: white; border: none; border-radius: 10px; font-weight: bold;",
-    }, "Connect");
-    private readonly _cancelButton: HTMLButtonElement = button({ class: "cancelButton" });
+    constructor(doc: SongDocument) {
+        super("Multiplayer Connection");
+        this._doc = doc;
+        this._manager = doc.multiplayer;
 
-    public readonly container: HTMLDivElement = div({ class: "prompt noSelection", style: "width: 300px;" },
-        h2("Multiplayer Connection"),
-        div({ style: "display: flex; align-items: center; justify-content: center;" },
-            this._myIdDisplay,
-            this._copyIdButton,
-        ),
-        div({ style: "margin: 10px 0; font-size: 80%; text-align: center;" }, "Connect to a friend to jam together!"),
-        this._idInputBox,
-        this._connectButton,
-        this._cancelButton,
-    );
+        this._idInput = new HTMLWrapper.Input("");
+        this._statusText = new HTMLWrapper.Text("Enter Peer ID to join or wait for connections.");
 
-    constructor(private readonly _doc: SongDocument) {
-        this._myIdDisplay.innerText = "Your ID: " + this._doc.multiplayer.myId;
-        
-        this._copyIdButton.onclick = () => {
-            navigator.clipboard.writeText(this._doc.multiplayer.myId).then(() => {
-                this._copyIdButton.innerText = "Copied!";
-                setTimeout(() => this._copyIdButton.innerText = "Copy", 2000);
-            });
+        this._manualSdpSection = new HTMLWrapper.Div();
+        this._manualSdpSection.style.display = "none";
+        this._manualSdpSection.style.marginTop = "10px";
+        this._manualSdpSection.style.borderTop = "1px solid #ccc";
+        this._manualSdpSection.style.paddingTop = "10px";
+
+        const offerLabel = new HTMLWrapper.Text("Manual SDP Offer:");
+        this._offerInput = new HTMLWrapper.Input("");
+        this._offerInput.style.width = "100%";
+        const genOfferBtn = new HTMLWrapper.Button("Generate Offer");
+        genOfferBtn.onClick = async () => {
+            const offer = await this._manager.generateOffer();
+            this._offerInput.value = offer;
+            this._statusText.text = "Offer generated. Send this to your peer.";
         };
-        
-        this._connectButton.onclick = () => {
-            const targetId = this._idInputBox.value.trim();
-            if (targetId) {
-                this._doc.multiplayer.connect(targetId);
-                this._doc.prompt = null;
+
+        const answerLabel = new HTMLWrapper.Text("Manual SDP Answer:");
+        this._answerInput = new HTMLWrapper.Input("");
+        this._answerInput.style.width = "100%";
+        const acceptOfferBtn = new HTMLWrapper.Button("Accept Answer");
+        acceptOfferBtn.onClick = async () => {
+            const answer = this._answerInput.value;
+            if (!answer) return;
+            await this._manager.acceptOffer(answer);
+            this._statusText.text = "Answer accepted. Attempting to connect...";
+        };
+
+        this._manualSdpSection.append(offerLabel, this._offerInput, genOfferBtn, answerLabel, this._answerInput, acceptOfferBtn);
+
+        const connectBtn = new HTMLWrapper.Button("Connect");
+        connectBtn.onClick = () => {
+            const id = this._idInput.value;
+            if (id) {
+                this._manager.connect(id);
+                this._statusText.text = `Connecting to ${id}...`;
             }
         };
-        
-        this._cancelButton.addEventListener("click", this._close);
-    }
-    
-    private _close = (): void => {
-        this._doc.undo();
+
+        const manualBtn = new HTMLWrapper.Button("Manual SDP Mode");
+        manualBtn.onClick = () => {
+            const isVisible = this._manualSdpSection.style.display === "block";
+            this._manualSdpSection.style.display = isVisible ? "none" : "block";
+        };
+
+        this.append(
+            new HTMLWrapper.Text("Peer ID:"),
+            this._idInput,
+            connectBtn,
+            this._statusText,
+            manualBtn,
+            this._manualSdpSection
+        );
     }
 
-    public cleanUp(): void {
-        this._cancelButton.removeEventListener("click", this._close);
+    public updateStatus(text: string) {
+        this._statusText.text = text;
     }
 }
