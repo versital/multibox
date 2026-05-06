@@ -771,7 +771,11 @@ export class SongEditor {
         option({ value: "viewPlayer" }, "▶ View in Song Player (⇧P)"),
         option({ value: "copyEmbed" }, "⎘ Copy HTML Embed Code"),
         option({ value: "songRecovery" }, "⚠ Recover Recent Song... (`)"), // */
+<<<<<<< HEAD
+        option({ value: "multiplayer" }, "🎮 Multiplayer..."),
+=======
         option({ value: "multiplayer" }, "Multiplayer..."),
+>>>>>>> bdfab32db80755be1994bc675fc52bd4c20969d0
     );
     private readonly _editMenu: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ selected: true, disabled: true, hidden: false }, "Edit"), // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
