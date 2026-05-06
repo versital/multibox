@@ -58,6 +58,11 @@ export class UndoableChange extends Change {
     protected _doBackwards(): void {
         throw new Error("Change.doBackwards(): Override me.");
     }
+
+    public syncToYjs(doc: any): void {
+        // Override in subclasses to sync changes to Yjs state.
+    }
+}
 }
 
 export class ChangeGroup extends Change {

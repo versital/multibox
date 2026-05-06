@@ -13,6 +13,8 @@ import { Change } from "./Change";
 import { ChangeNotifier } from "./ChangeNotifier";
 import { ChangeSong, setDefaultInstruments, discardInvalidPatternInstruments, ChangeHoldingModRecording } from "./changes";
 import { MultiplayerManager, DebugState } from "./MultiplayerManager";
+import { YjsSongState } from "./YjsSongState";
+import { UndoableChange } from "./Change";
 
 interface HistoryState {
     canUndo: boolean;
@@ -272,6 +274,14 @@ export class SongDocument {
 	}
 		
 	private _cleanDocument = (): void => {
+		if (this._recentChange != null) {
+			if (this._recentChange instanceof UndoableChange) {
+				this._recentChange.syncToYjs(this);
+			} else if (this._recentChange instanceof ChangeGroup) {
+				// ChangeGroup doesn't have syncToYjs, but its children might.
+				// For now, we just notify.
+			}
+		}
 		this.notifier.notifyWatchers();
 	}
 

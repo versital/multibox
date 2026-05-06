@@ -422,6 +422,7 @@ export function makeNotePin(interval: number, time: number, size: number): NoteP
 }
 
 export class Note {
+    public uuid: string;
     public pitches: number[];
     public pins: NotePin[];
     public start: number;
@@ -429,12 +430,25 @@ export class Note {
     public continuesLastPattern: boolean;
 
     public constructor(pitch: number, start: number, end: number, size: number, fadeout: boolean = false) {
+        this.uuid = crypto.randomUUID();
         this.pitches = [pitch];
         this.pins = [makeNotePin(0, 0, size), makeNotePin(0, end - start, fadeout ? 0 : size)];
         this.start = start;
         this.end = end;
         this.continuesLastPattern = false;
     }
+
+    public toJSON() {
+        return {
+            uuid: this.uuid,
+            pitches: this.pitches,
+            pins: this.pins.map(p => ({ interval: p.interval, time: p.time, size: p.size })),
+            start: this.start,
+            end: this.end,
+            continuesLastPattern: this.continuesLastPattern,
+        };
+    }
+}
 
     public pickMainInterval(): number {
         let longestFlatIntervalDuration: number = 0;
