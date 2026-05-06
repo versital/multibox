@@ -102,11 +102,11 @@ export class MultiplayerManager {
             this.connected = true;
             
             if (this.isHost) {
-                DebugState.log("[HOST] Sending initial state to new peer");
+                DebugState.log("[HOST] Triggering initial state sync...");
                 this.syncState();
                 this.doc.prompt = null;
             } else {
-                // Guest starts the clock sync process
+                DebugState.log("[GUEST] Connected to host. Waiting for sync...");
                 this.startClockSync();
             }
         });
@@ -139,8 +139,10 @@ export class MultiplayerManager {
             DebugState.remoteUpdateReachedState = false;
 
             if (packet.type === 'SYNC') {
+                DebugState.log(`[SYNC RECEIVE] Received song state from ${packet.meta?.senderId}`);
                 const songString = packet.payload;
                 this.doc.updateSong(songString);
+                DebugState.remoteUpdateReachedState = true;
             }
         });
 
