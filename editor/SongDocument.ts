@@ -398,6 +398,15 @@ export class SongDocument {
         this._recoveryUid = generateUid();
     }
 
+    public updateSong(hash: string): void {
+        try {
+            new ChangeSong(this, hash);
+        } catch (error) {
+            errorAlert(error);
+        }
+        this.notifier.notifyWatchers();
+    }
+
     public openPrompt(prompt: string): void {
         this.prompt = prompt;
         const hash: string = this.song.toBase64String();
