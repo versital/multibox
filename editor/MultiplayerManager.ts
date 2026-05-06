@@ -114,37 +114,57 @@ export class MultiplayerManager {
         conn.on("data", (data: any) => {
             // Handle binary vs JSON
             let packet: any;
-            try {
-                packet = typeof data === "string" ? JSON.parse(data) : data;
-            } catch (e) {
-                DebugState.log("[ERROR] Received non-JSON packet: " + data);
+            let isLegacyString = false;
+
+            if (typeof data === "string") {
+                try {
+                    packet = JSON.parse(data);
+                } catch (e) {
+                    // If it's not JSON, it might be a legacy raw song string
+                    // Base64 strings usually don't start with '{'
+                    if (data.length > 0 && data[0] !== '{') {
+                        isLegacyString = true;
+                        packet = null;
+                    } else {
+                        DebugState.log("[ERROR] Received invalid JSON packet: " + data);
+                        return;
+                    }
+                }
+            } else {
+                packet = data;
+            }
+
+            if (isLegacyString) {
+                DebugState.log("[LEGACY RECEIVE] Received raw song string");
+                this.doc.updateSong(data);
+                window.location.hash = data;
                 return;
             }
 
             // Handle Clock Sync packets first (High Priority)
-            if (packet.type === 'PING') {
+            if (packet?.type === 'PING') {
                 this.handlePing(packet);
                 return;
             }
-            if (packet.type === 'PONG') {
+            if (packet?.type === 'PONG') {
                 this.handlePong(packet);
                 return;
             }
 
             // Standard Sync Packets
-            DebugState.log(`[REMOTE RECEIVE] Seq: ${packet.meta?.seq} from ${packet.meta?.senderId}`);
-            DebugState.lastReceivedPacket = packet;
-            DebugState.lastReceivedTime = Date.now();
-            DebugState.receivedCount++;
-            DebugState.remoteUpdateReachedState = false;
+            if (packet?.type === 'SYNC') {
+                DebugState.log(`[REMOTE RECEIVE] Seq: ${packet.meta?.seq} from ${packet.meta?.senderId}`);
+                DebugState.lastReceivedPacket = packet;
+                DebugState.lastReceivedTime = Date.now();
+                DebugState.receivedCount++;
+                DebugState.remoteUpdateReachedState = false;
 
-            if (packet.type === 'SYNC') {
-                DebugState.log(`[SYNC RECEIVE] Received song state from ${packet.meta?.senderId}`);
                 const songString = packet.payload;
                 this.doc.updateSong(songString);
-                // For consistency, update the hash as well
                 window.location.hash = songString;
                 DebugState.remoteUpdateReachedState = true;
+            } else if (packet) {
+                DebugState.log("[ERROR] Received unknown packet type: " + packet.type);
             }
         });
 
