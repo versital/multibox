@@ -50,9 +50,9 @@ export class MultiplayerManager {
         });
 
         this.peer.on("connection", (conn: DataConnection) => {
-            DebugState.log("[HOST RECEIVE] Incoming connection request");
-            this.isHost = true;
-            DebugState.role = "Host";
+            DebugState.log("[GUEST RECEIVE] Incoming connection request");
+            this.isHost = false;
+            DebugState.role = "Guest";
             this.setupConnection(conn);
         });
 
@@ -68,8 +68,8 @@ export class MultiplayerManager {
         if (!this.peer) throw new Error("Peer not initialized");
         DebugState.log(`[SEND] Attempting to connect to ${targetId}`);
         const conn = this.peer.connect(targetId);
-        this.isHost = false;
-        DebugState.role = "Guest";
+        this.isHost = true;
+        DebugState.role = "Host";
         this.setupConnection(conn);
     }
 
