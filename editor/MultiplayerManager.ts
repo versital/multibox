@@ -103,7 +103,7 @@ export class MultiplayerManager {
             
             if (this.isHost) {
                 DebugState.log("[HOST] Triggering initial state sync...");
-                this.syncState();
+                this.attemptInitialSync(3); // Try 3 times with delays
                 this.doc.prompt = null;
             } else {
                 DebugState.log("[GUEST] Connected to host. Waiting for sync...");
@@ -230,9 +230,28 @@ export class MultiplayerManager {
             DebugState.lastSentTime = Date.now();
             DebugState.sentCount++;
             
-            this.connection.send(JSON.stringify(packet));
+            try {
+                this.connection.send(JSON.stringify(packet));
+            } catch (e) {
+                DebugState.log(`[ERROR] Send failed: ${e}`);
+            }
         } else {
             DebugState.log("[ERROR] Sync failed: Connection not open");
         }
+    }
+
+    private attemptInitialSync(retries: number) {
+        if (retries <= 0) {
+            DebugState.log("[HOST] Initial sync failed after all retries.");
+            return;
+        }
+
+        setTimeout(() => {
+            DebugState.log(`[HOST] Sync attempt ${4 - retries}...`);
+            this.syncState();
+            if (!this.connected) {
+                this.attemptInitialSync(retries - 1);
+            }
+        }, 500);
     }
 }
