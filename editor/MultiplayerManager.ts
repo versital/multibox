@@ -12,7 +12,14 @@ export class MultiplayerManager {
 
     constructor(doc: SongDocument) {
         this.doc = doc;
-        createDebugOverlay();
+        // Use window.onload to ensure DOM is ready for the overlay
+        if (typeof window !== "undefined") {
+            if (document.readyState === "complete") {
+                createDebugOverlay();
+            } else {
+                window.addEventListener("load", createDebugOverlay);
+            }
+        }
     }
 
     public init(customId?: string) {

@@ -406,6 +406,8 @@ export class SongDocument {
         DebugState.remoteUpdateReachedState = true;
         try {
             new ChangeSong(this, hash);
+            // Force the synth to re-evaluate instrument types and settings
+            this.synth.computeLatestModValues(); 
         } catch (error) {
             errorAlert(error);
         }

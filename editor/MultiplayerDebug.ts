@@ -47,6 +47,8 @@ export const DebugState = {
 };
 
 export function createDebugOverlay() {
+    if (document.getElementById('multibox-debug-overlay')) return;
+    console.log("[DEBUG] Creating diagnostic overlay...");
     const overlay = document.createElement('div');
     overlay.id = 'multibox-debug-overlay';
     overlay.style.cssText = `
