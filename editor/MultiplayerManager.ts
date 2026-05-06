@@ -1,5 +1,6 @@
 import { SongDocument } from "./SongDocument";
 import { Peer } from "peerjs";
+import { DebugState, SyncPacket, createDebugOverlay } from "./MultiplayerDebug";
 
 export class MultiplayerManager {
     private peer: Peer | null = null;
@@ -11,6 +12,7 @@ export class MultiplayerManager {
 
     constructor(doc: SongDocument) {
         this.doc = doc;
+        createDebugOverlay();
     }
 
     public init(customId?: string) {
@@ -18,19 +20,24 @@ export class MultiplayerManager {
 
         this.peer.on("open", (id: string) => {
             this.myId = id;
+            DebugState.localPeerId = id;
             console.log("My Peer ID is: " + id);
         });
 
         this.peer.on("connection", (conn: any) => {
+            DebugState.log("[HOST RECEIVE] Incoming connection request");
             this.isHost = true;
+            DebugState.role = "Host";
             this.setupConnection(conn);
         });
     }
 
     public connect(targetId: string) {
         if (!this.peer) throw new Error("Peer not initialized");
+        DebugState.log(`[SEND] Attempting to connect to ${targetId}`);
         const conn = this.peer.connect(targetId);
         this.isHost = false;
+        DebugState.role = "Guest";
         this.setupConnection(conn);
     }
 
@@ -38,10 +45,13 @@ export class MultiplayerManager {
         this.connection = conn;
 
         conn.on("open", () => {
-            console.log("Connected to peer!");
+            DebugState.log("[CONNECTION] Open");
+            DebugState.connectionState = "Connected";
+            DebugState.connectedPeers.push(conn.peer);
             this.connected = true;
             // Host sends the current song state immediately upon connection
             if (this.isHost) {
+                DebugState.log("[HOST] Sending initial state to new peer");
                 this.syncState();
                 // Close the Multiplayer Connection prompt if it's open
                 this.doc.prompt = null;
@@ -49,15 +59,29 @@ export class MultiplayerManager {
         });
 
         conn.on("data", (data: any) => {
-            if (typeof data === "string") {
-                console.log("Received song update from peer");
-                const songString = data;
+            let packet: SyncPacket;
+            try {
+                packet = typeof data === "string" ? JSON.parse(data) : data;
+            } catch (e) {
+                DebugState.log("[ERROR] Received non-JSON packet: " + data);
+                return;
+            }
+
+            DebugState.log(`[REMOTE RECEIVE] Seq: ${packet.meta.seq} from ${packet.meta.senderId}`);
+            DebugState.lastReceivedPacket = packet;
+            DebugState.lastReceivedTime = Date.now();
+            DebugState.receivedCount++;
+            DebugState.remoteUpdateReachedState = false;
+
+            if (packet.type === 'SYNC') {
+                const songString = packet.payload;
                 this.doc.updateSong(songString);
             }
         });
 
         conn.on("close", () => {
-            console.log("Connection closed");
+            DebugState.log("[CONNECTION] Closed");
+            DebugState.connectionState = "Disconnected";
             this.connected = false;
             this.connection = null;
         });
@@ -66,7 +90,22 @@ export class MultiplayerManager {
     public syncState() {
         if (this.connection && this.connection.open) {
             const songString = this.doc.song.toBase64String();
-            this.connection.send(songString);
+            const packet: SyncPacket = {
+                meta: {
+                    seq: ++DebugState.packetSequence,
+                    senderId: this.myId,
+                    timestamp: Date.now(),
+                    type: 'SYNC'
+                },
+                payload: songString
+            };
+            
+            DebugState.log(`[SEND] Syncing state (Seq: ${packet.meta.seq})`);
+            DebugState.lastSentPacket = packet;
+            DebugState.lastSentTime = Date.now();
+            DebugState.sentCount++;
+            
+            this.connection.send(JSON.stringify(packet));
         }
     }
 }

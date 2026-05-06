@@ -12,7 +12,7 @@ import { Preferences } from "./Preferences";
 import { Change } from "./Change";
 import { ChangeNotifier } from "./ChangeNotifier";
 import { ChangeSong, setDefaultInstruments, discardInvalidPatternInstruments, ChangeHoldingModRecording } from "./changes";
-import { MultiplayerManager } from "./MultiplayerManager";
+import { MultiplayerManager, DebugState } from "./MultiplayerManager";
 
 interface HistoryState {
     canUndo: boolean;
@@ -359,6 +359,9 @@ export class SongDocument {
         // Multiplayer sync
         this.multiplayer.syncState();
 
+        DebugState.songChecksum = hash.substring(0, 16);
+        DebugState.noteCount = this.song.channels.reduce((acc, ch) => acc + ch.patterns.reduce((acc2, p) => acc2 + p.notes.length, 0), 0);
+        
         if (this._stateShouldBePushed) this._sequenceNumber++;
         if (this._recordedNewSong) {
             this._resetSongRecoveryUid();
@@ -399,6 +402,8 @@ export class SongDocument {
     }
 
     public updateSong(hash: string): void {
+        DebugState.log("[STATE APPLY] Updating song from remote hash");
+        DebugState.remoteUpdateReachedState = true;
         try {
             new ChangeSong(this, hash);
         } catch (error) {
