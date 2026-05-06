@@ -51,18 +51,13 @@ export class MultiplayerManager {
         conn.on("data", (data: any) => {
             if (typeof data === "string") {
                 console.log("Received song update from peer");
-                // Guest updates their state based on the Host's string
                 // We use a simple last-writer-wins / Host-wins approach
-                if (!this.isHost) {
-                    // In a more complex setup, we'd check timestamps or versions
-                    // For now, Guests just accept the Host's state
-                    const songString = data;
-                    // We trigger the change via a manual hash update
-                    window.location.hash = songString;
-                    // Force the document to update from the new hash
-                    this.doc.notifier.notifyWatchers(); 
-                    // Note: SongDocument.ts already has a hashchange listener
-                }
+                const songString = data;
+                // We trigger the change via a manual hash update
+                window.location.hash = songString;
+                // Force the document to update from the new hash
+                this.doc.notifier.notifyWatchers(); 
+                // Note: SongDocument.ts already has a hashchange listener
             }
         });
 
