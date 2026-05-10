@@ -246,6 +246,11 @@ export class MultiplayerManager {
     }
 
     public syncState() {
+        console.log("[SYNC] syncState called, songString:",
+        this.doc.song.toBase64String().substring(0, 50),
+        "applyingRemote:", this._applyingRemoteUpdate,
+        "lastSent:", this._lastSentSongString.substring(0, 50)
+        );
         if (this._applyingRemoteUpdate) return;
         if (this.connection && this.connection.open) {
             const songString = this.doc.song.toBase64String();
