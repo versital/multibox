@@ -558,18 +558,6 @@ class ChangePins extends UndoableChange {
         if (this._doc != null) this._doc.notifier.changed();
     }
 
-    public syncToYjs(doc: SongDocument): void {
-        if (this._doc == null) return;
-        const channelId = doc.channel;
-        const patterns = doc.song.channels[channelId].patterns;
-        const pattern = doc.song.getPattern(channelId, doc.bar);
-        if (pattern) {
-            const patternId = patterns.indexOf(pattern);
-            if (patternId != -1) {
-                doc.yjsState.setNote(channelId, patternId, this._note.uuid, this._note.toJSON());
-            }
-        }
-    }
 }
 
 export class ChangeCustomizeInstrument extends Change {
@@ -4777,14 +4765,6 @@ export class ChangeNoteAdded extends UndoableChange {
         this._doc.notifier.changed();
     }
 
-    public syncToYjs(doc: SongDocument): void {
-        const channelId = doc.channel;
-        const patterns = doc.song.channels[channelId].patterns;
-        const patternId = patterns.indexOf(this._pattern);
-        if (patternId != -1) {
-            doc.yjsState.deleteNote(channelId, patternId, this._note.uuid);
-        }
-    }
 }
 
 export class ChangeNoteLength extends ChangePins {

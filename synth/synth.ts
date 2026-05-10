@@ -448,7 +448,6 @@ export class Note {
             continuesLastPattern: this.continuesLastPattern,
         };
     }
-}
 
     public pickMainInterval(): number {
         let longestFlatIntervalDuration: number = 0;

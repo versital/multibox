@@ -15,10 +15,7 @@
 		"noImplicitReturns": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUnusedLocals": true,
-<<<<<<< HEAD
 		"ignoreDeprecations": "5.0",
-=======
->>>>>>> bdfab32db80755be1994bc675fc52bd4c20969d0
 		"skipLibCheck": true,
 		"lib": [
 			"DOM",

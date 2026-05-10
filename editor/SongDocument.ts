@@ -12,9 +12,8 @@ import { Preferences } from "./Preferences";
 import { Change } from "./Change";
 import { ChangeNotifier } from "./ChangeNotifier";
 import { ChangeSong, setDefaultInstruments, discardInvalidPatternInstruments, ChangeHoldingModRecording } from "./changes";
-import { MultiplayerManager, DebugState } from "./MultiplayerManager";
-import { YjsSongState } from "./YjsSongState";
-import { UndoableChange } from "./Change";
+import { MultiplayerManager } from "./MultiplayerManager";
+import { DebugState } from "./MultiplayerDebug";
 
 interface HistoryState {
     canUndo: boolean;
@@ -274,14 +273,6 @@ export class SongDocument {
 	}
 		
 	private _cleanDocument = (): void => {
-		if (this._recentChange != null) {
-			if (this._recentChange instanceof UndoableChange) {
-				this._recentChange.syncToYjs(this);
-			} else if (this._recentChange instanceof ChangeGroup) {
-				// ChangeGroup doesn't have syncToYjs, but its children might.
-				// For now, we just notify.
-			}
-		}
 		this.notifier.notifyWatchers();
 	}
 
@@ -415,11 +406,14 @@ export class SongDocument {
         DebugState.log("[STATE APPLY] Updating song from remote hash");
         DebugState.remoteUpdateReachedState = true;
         try {
+            this.multiplayer._applyingRemoteUpdate = true;
             new ChangeSong(this, hash);
             // Force the synth to re-evaluate instrument types and settings
             this.synth.computeLatestModValues(); 
         } catch (error) {
             errorAlert(error);
+        } finally {
+            this.multiplayer._applyingRemoteUpdate = false;
         }
         this.notifier.notifyWatchers();
     }

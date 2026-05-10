@@ -63,7 +63,6 @@ export class UndoableChange extends Change {
         // Override in subclasses to sync changes to Yjs state.
     }
 }
-}
 
 export class ChangeGroup extends Change {
     constructor() {

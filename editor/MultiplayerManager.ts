@@ -22,6 +22,8 @@ export class MultiplayerManager {
     private isHost: boolean = false;
     public myId: string = "";
     public connected: boolean = false;
+    public _applyingRemoteUpdate: boolean = false;
+    private _lastSentSongString: string = "";
     
     // Phase 2: Clock Sync
     public ntpOffset: number = 0; // Guest's wall clock offset from Host (ms)
@@ -209,14 +211,12 @@ export class MultiplayerManager {
 
     private handlePong(packet: ClockSyncResponse) {
         const now = Date.now();
-        const rtt = now - packet.receiveTimestamp - (packet.receiveTimestamp - packet.originTimestamp); 
         // Simplified RTT: current_time - origin_timestamp
         const actualRtt = now - packet.originTimestamp;
         
         // Offset = ((T2 - T1) + (T3 - T4)) / 2
         // T1: origin, T2: receive, T3: response_sent, T4: response_received
         // We assume T2 ~= T3 (instant response)
-        const offset = ((packet.receiveTimestamp - packet.originTimestamp) + (now - packet.receiveTimestamp)) / 2;
         
         // Use a simpler RTT/2 estimate for offset calculation
         const sampleOffset = packet.receiveTimestamp - (packet.originTimestamp + actualRtt / 2);
@@ -235,8 +235,11 @@ export class MultiplayerManager {
     }
 
     public syncState() {
+        if (this._applyingRemoteUpdate) return;
         if (this.connection && this.connection.open) {
             const songString = this.doc.song.toBase64String();
+            if (songString === this._lastSentSongString) return;
+
             const packet: SyncPacket = {
                 meta: {
                     seq: ++DebugState.packetSequence,
@@ -254,6 +257,7 @@ export class MultiplayerManager {
             
             try {
                 this.connection.send(JSON.stringify(packet));
+                this._lastSentSongString = songString;
             } catch (e) {
                 DebugState.log(`[ERROR] Send failed: ${e}`);
             }
