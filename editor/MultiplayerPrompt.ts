@@ -8,6 +8,7 @@ const { button, div, input, h2, b } = HTML;
 export class MultiplayerPrompt implements Prompt {
     public container: HTMLElement;
     private _manager: MultiplayerManager;
+    private _myPeerIdDisplay: HTMLElement;
     private _statusText: HTMLElement;
     private _manualSdpSection: HTMLElement;
 
@@ -15,8 +16,20 @@ export class MultiplayerPrompt implements Prompt {
         this._manager = doc.multiplayer;
 
         const idInput = input({type: "text", placeholder: "Enter Peer ID"});
+        this._myPeerIdDisplay = b({}, "...");
         this._statusText = div({style: "margin-top: 8px;"});
         this._statusText.textContent = "Enter Peer ID to join or wait for connections.";
+
+        // If ID already assigned, show it immediately
+        const existingId = this._manager.getPeerId();
+        if (existingId) {
+            this._myPeerIdDisplay.textContent = existingId;
+        } else {
+            // Otherwise wait for it
+            this._manager.onPeerIdReady = (id: string) => {
+                this._myPeerIdDisplay.textContent = id;
+            };
+        }
 
         const connectBtn = button({}, "Connect");
         connectBtn.addEventListener("click", () => {

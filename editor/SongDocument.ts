@@ -48,7 +48,7 @@ export class SongDocument {
     public trackVisibleChannels: number = 4;
     public barScrollPos: number = 0;
     public channelScrollPos: number = 0;
-    public prompt: string | null = null;
+    public prompt: any | null = null;
 
     public addedEffect: boolean = false;
     public addedEnvelope: boolean = false;

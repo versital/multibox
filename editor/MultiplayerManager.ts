@@ -24,6 +24,7 @@ export class MultiplayerManager {
     public connected: boolean = false;
     public _applyingRemoteUpdate: boolean = false;
     private _lastSentSongString: string = "";
+    public onPeerIdReady: ((id: string) => void) | null = null;
     
     // Phase 2: Clock Sync
     public ntpOffset: number = 0; // Guest's wall clock offset from Host (ms)
@@ -47,6 +48,7 @@ export class MultiplayerManager {
 
         this.peer.on("open", (id: string) => {
             this.myId = id;
+            if (this.onPeerIdReady) this.onPeerIdReady(id);
             DebugState.localPeerId = id;
             console.log("My Peer ID is: " + id);
         });
@@ -64,6 +66,10 @@ export class MultiplayerManager {
                 DebugState.log("[NETWORK] Target peer unavailable. Manual SDP may be required.");
             }
         });
+    }
+
+    public getPeerId(): string | null {
+        return this.myId || null;
     }
 
     public connect(targetId: string) {
