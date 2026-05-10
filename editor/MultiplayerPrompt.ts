@@ -20,6 +20,8 @@ export class MultiplayerPrompt implements Prompt {
 
         const idInput = input({type: "text", placeholder: "Enter Peer ID"});
         this._myPeerIdDisplay = b({}, "...");
+        this._myPeerIdDisplay.style.userSelect = "text";
+        this._myPeerIdDisplay.style.cursor = "text";
         this._statusText = div({style: "margin-top: 8px;"});
         this._statusText.textContent = "Enter Peer ID to join or wait for connections.";
 
@@ -33,6 +35,19 @@ export class MultiplayerPrompt implements Prompt {
                 this._myPeerIdDisplay.textContent = id;
             };
         }
+
+        const copyBtn = button({}, "Copy");
+        copyBtn.addEventListener("click", () => {
+            const id = this._manager.getPeerId();
+            if (id) {
+                navigator.clipboard.writeText(id).then(() => {
+                    copyBtn.textContent = "Copied!";
+                    setTimeout(() => {
+                        copyBtn.textContent = "Copy";
+                    }, 2000);
+                });
+            }
+        });
 
         const connectBtn = button({}, "Connect");
         connectBtn.addEventListener("click", () => {
@@ -75,7 +90,11 @@ export class MultiplayerPrompt implements Prompt {
 
         this.container = div({class: "prompt noSelection"},
             h2({}, "Multiplayer"),
-            div({}, "Your Peer ID: ", this._myPeerIdDisplay),
+            div({style: "display:flex; align-items:center; gap:8px; margin-bottom:8px;"},
+                "Your Peer ID: ",
+                this._myPeerIdDisplay,
+                copyBtn
+            ),
             div({}, "Connect to Peer:"),
             idInput,
             connectBtn,
