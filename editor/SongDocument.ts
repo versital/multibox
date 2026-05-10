@@ -418,6 +418,10 @@ export class SongDocument {
         DebugState.log("[UI] Calling notifyWatchers...");
         this.notifier.notifyWatchers();
         DebugState.remoteUpdateReachedUI = true;
+        console.log("[UI] song.barCount:", this.song.barCount);
+        console.log("[UI] song.channels.length:", this.song.channels.length);
+        console.log("[UI] doc.bar:", this.bar);
+        console.log("[UI] doc.channel:", this.channel);
     }
 
     public openPrompt(prompt: string): void {
