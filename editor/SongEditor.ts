@@ -2376,6 +2376,7 @@ export class SongEditor {
     }
 
     public whenUpdated = (): void => {
+        console.log("[UI] whenUpdated called");
         const prefs: Preferences = this.doc.prefs;
         this._muteEditor.container.style.display = prefs.enableChannelMuting ? "" : "none";
         const trackBounds: DOMRect = this._trackVisibleArea.getBoundingClientRect();

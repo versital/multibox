@@ -415,7 +415,9 @@ export class SongDocument {
         } finally {
             this.multiplayer._applyingRemoteUpdate = false;
         }
+        DebugState.log("[UI] Calling notifyWatchers...");
         this.notifier.notifyWatchers();
+        DebugState.remoteUpdateReachedUI = true;
     }
 
     public openPrompt(prompt: string): void {
