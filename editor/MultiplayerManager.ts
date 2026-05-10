@@ -152,17 +152,17 @@ export class MultiplayerManager {
             }
 
             // Handle Clock Sync packets first (High Priority)
-            if (packet?.type === 'PING') {
+            if (packet?.meta?.type === 'PING') {
                 this.handlePing(packet);
                 return;
             }
-            if (packet?.type === 'PONG') {
+            if (packet?.meta?.type === 'PONG') {
                 this.handlePong(packet);
                 return;
             }
 
             // Standard Sync Packets
-            if (packet?.type === 'SYNC') {
+            if (packet?.meta?.type === 'SYNC') {
                 DebugState.log(`[REMOTE RECEIVE] Seq: ${packet.meta?.seq} from ${packet.meta?.senderId}`);
                 DebugState.lastReceivedPacket = packet;
                 DebugState.lastReceivedTime = Date.now();
@@ -174,7 +174,7 @@ export class MultiplayerManager {
                 window.location.hash = songString;
                 DebugState.remoteUpdateReachedState = true;
             } else if (packet) {
-                DebugState.log("[ERROR] Received unknown packet type: " + packet.type);
+                DebugState.log("[ERROR] Received unknown packet type: " + packet?.meta?.type);
             }
         });
 

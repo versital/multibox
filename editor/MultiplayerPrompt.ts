@@ -75,7 +75,7 @@ export class MultiplayerPrompt implements Prompt {
 
         this.container = div({class: "prompt noSelection"},
             h2({}, "Multiplayer"),
-            div({}, "Your Peer ID: ", b({id: "myPeerId"}, "...")),
+            div({}, "Your Peer ID: ", this._myPeerIdDisplay),
             div({}, "Connect to Peer:"),
             idInput,
             connectBtn,
