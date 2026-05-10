@@ -1,5 +1,5 @@
 
-const cacheName = "Slarmoo's Box";
+const cacheName = "MultiBox-v2";
 
 self.addEventListener("install", function(event) {
 	event.waitUntil(
