@@ -14,6 +14,9 @@ export class MultiplayerPrompt implements Prompt {
 
     constructor(doc: SongDocument) {
         this._manager = doc.multiplayer;
+        console.log("[Prompt] constructor called");
+        console.log("[Prompt] getPeerId() returned:", this._manager.getPeerId());
+        console.log("[Prompt] subscribing to onPeerIdReady");
 
         const idInput = input({type: "text", placeholder: "Enter Peer ID"});
         this._myPeerIdDisplay = b({}, "...");

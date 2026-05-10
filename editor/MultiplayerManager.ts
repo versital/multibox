@@ -48,6 +48,8 @@ export class MultiplayerManager {
 
         this.peer.on("open", (id: string) => {
             this.myId = id;
+            console.log("[PeerJS] open event fired, id:", id);
+            console.log("[PeerJS] onPeerIdReady callback exists:", !!this.onPeerIdReady);
             if (this.onPeerIdReady) this.onPeerIdReady(id);
             DebugState.localPeerId = id;
             console.log("My Peer ID is: " + id);
