@@ -144,6 +144,9 @@ export class MultiplayerManager {
                 packet = data;
             }
 
+            console.log("[RECV] payload preview:",
+            packet?.payload ? packet.payload.substring(0, 50) : "NULL/EMPTY");
+
             if (isLegacyString) {
                 DebugState.log("[LEGACY RECEIVE] Received raw song string");
                 this.doc.updateSong(data);
@@ -246,6 +249,8 @@ export class MultiplayerManager {
         if (this._applyingRemoteUpdate) return;
         if (this.connection && this.connection.open) {
             const songString = this.doc.song.toBase64String();
+            console.log("[SEND] song string preview:",
+            songString ? songString.substring(0, 50) : "NULL/EMPTY");
             if (songString === this._lastSentSongString) return;
 
             const packet: SyncPacket = {

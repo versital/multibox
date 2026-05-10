@@ -403,11 +403,18 @@ export class SongDocument {
     }
 
     public updateSong(hash: string): void {
+        console.log("[UI] updateSong received hash:",
+        hash ? hash.substring(0, 50) : "NULL/EMPTY");
         DebugState.log("[STATE APPLY] Updating song from remote hash");
         DebugState.remoteUpdateReachedState = true;
         try {
             this.multiplayer._applyingRemoteUpdate = true;
             new ChangeSong(this, hash);
+            console.log("[UI] song object id check:",
+            this.song.channels.length,
+            this.song.channels[0]?.patterns?.length,
+            this.song.pitchChannelCount
+            );
             // Force the synth to re-evaluate instrument types and settings
             this.synth.computeLatestModValues(); 
         } catch (error) {
