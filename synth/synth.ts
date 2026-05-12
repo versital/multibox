@@ -9754,6 +9754,49 @@ class InstrumentState {
     }
 }
 
+
+function generateRandomNotes(beatsPerBar: number, rhythm: number): Note[] {
+    const notes: Note[] = [];
+    const ticksPerBeat = Config.rhythms[rhythm].stepsPerBeat;
+    const totalTicks = beatsPerBar * ticksPerBeat;
+    const scaleDegrees = [0, 2, 4, 5, 7, 9, 11];
+    let currentTick = 0;
+    while (currentTick < totalTicks) {
+        const lengths = [ticksPerBeat, ticksPerBeat * 2];
+        const length = lengths[Math.floor(Math.random() * lengths.length)];
+        const end = Math.min(currentTick + length, totalTicks);
+        if (Math.random() > 0.3) {
+            const octave = 3 + Math.floor(Math.random() * 2);
+            const degree = scaleDegrees[Math.floor(Math.random() * scaleDegrees.length)];
+            const pitch = octave * 12 + degree;
+            const size = 60 + Math.floor(Math.random() * 40);
+            notes.push(new Note(pitch, currentTick, end, size, false));
+        }
+        currentTick = end;
+    }
+    return notes;
+}
+
+function generateRandomSong(): string {
+    const song = new Song();
+    song.initToDefault(true);
+    song.title = "AI Generated";
+    song.tempo = 120 + Math.floor(Math.random() * 60);
+    song.scale = Math.floor(Math.random() * Config.scales.length);
+    song.key = Math.floor(Math.random() * 12);
+    song.beatsPerBar = 4;
+    song.barCount = 4;
+    song.loopStart = 0;
+    song.loopLength = song.barCount;
+    song.rhythm = Math.floor(Math.random() * Config.rhythms.length);
+    for (const channel of song.channels) {
+        for (const pattern of channel.patterns) {
+            pattern.notes = generateRandomNotes(song.beatsPerBar, song.rhythm);
+        }
+    }
+    return song.toBase64String();
+}
+
 class ChannelState {
     public readonly instruments: InstrumentState[] = [];
     public muted: boolean = false;

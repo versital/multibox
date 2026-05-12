@@ -766,6 +766,7 @@ export class SongEditor {
         option({ value: "import" }, "↑ Import Song... (" + EditorConfig.ctrlSymbol + "O)"), 
         option({ value: "export" }, "↓ Export Song... (" + EditorConfig.ctrlSymbol + "S)"), /*comment for testing
         option({ value: "copyUrl" }, "⎘ Copy Song URL"), 
+        option({ value: "generateSong" }, "🎲 Generate Random Song"),
         option({ value: "configureShortener" }, "🛠 Customize Url Shortener..."),
         option({ value: "shortenUrl" }, "… Shorten Song URL (⇧U)"),
         option({ value: "viewPlayer" }, "▶ View in Song Player (⇧P)"),
@@ -5640,6 +5641,11 @@ export class SongEditor {
                 break;
             case "copyUrl":
                 this._copyTextToClipboard(new URL("#" + this.doc.song.toBase64String(), location.href).href);
+                break;
+            case "generateSong":
+                const generated = generateRandomSong();
+                window.location.hash = "song=" + generated;
+                window.location.reload();
                 break;
             case "shareUrl":
                 (<any>navigator).share({ url: new URL("#" + this.doc.song.toBase64String(), location.href).href });
