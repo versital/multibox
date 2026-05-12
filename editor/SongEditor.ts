@@ -773,6 +773,7 @@ export class SongEditor {
         option({ value: "copyEmbed" }, "⎘ Copy HTML Embed Code"),
         option({ value: "songRecovery" }, "⚠ Recover Recent Song... (`)"),
         option({ value: "multiplayer" }, "🎮 Multiplayer..."),
+        option({ value: "shareUrl" }, "📤 Share Song..."),
     );
     private readonly _editMenu: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ selected: true, disabled: true, hidden: false }, "Edit"), // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
@@ -1518,7 +1519,12 @@ export class SongEditor {
         window.requestAnimationFrame(this._animate);
 
         if (!("share" in navigator)) {
-            this._fileMenu.removeChild(this._fileMenu.querySelector("[value='shareUrl']")!);
+            // Keep the option but disable it if navigator.share is not supported.
+            const shareOption = this._fileMenu.querySelector("[value='shareUrl']") as HTMLOptionElement;
+            if (shareOption) {
+                shareOption.disabled = true;
+                shareOption.textContent += " (Not supported)";
+            }
         }
 
         this._scaleSelect.appendChild(optgroup({ label: "Edit" },
